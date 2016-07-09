@@ -169,6 +169,8 @@ def cpu_percent():
     percent = ((total_cputime - idle_cputime) / total_cputime) * 100
     return round(percent, 2)
 
+
+__version__ = 0.1
 __all__ = ["Process", "processes", "mem_percent", "cpu_percent"]
 
 
