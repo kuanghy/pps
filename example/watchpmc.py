@@ -12,15 +12,16 @@ from __future__ import absolute_import, print_function, division
 
 import os
 import sys
-import time
+import platform
 import datetime
+from time import sleep
 from argparse import ArgumentParser
 from configparser import ConfigParser
 import logging
 
 log = logging
 logging.basicConfig(level=logging.INFO,
-            format='%(asctime)s %(levelname)s %(message)s')
+        format='%(asctime)s %(levelname)s %(filename)s:%(lineno)d %(message)s')
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from pps import Process, mem_percent, cpu_percent
@@ -36,7 +37,9 @@ Process(%(pid)d) has been killed:
 <strong>Memory Usage:</strong>   %(mem)f
 <strong>CPU Usage:</strong>      %(cpu)f
 <strong>Proccess Owner:</strong> %(user)s
-<strong>Datetime:</strong>       %(dt)s
+
+%(hostname)s %(system)s %(machine)s
+%(dt)s
 </pre>"""
 
 def send_email(msg):
@@ -71,31 +74,26 @@ def watchpmc(pid_list, interval=1, mem_limit=50, cpu_limit=50):
                 total_mem_percent = mem_percent()
                 total_cpu_percent = cpu_percent()
 
-                if p.mem > mem_limit and total_mem_percent > 90:
+                condition1 = p.mem > mem_limit and total_mem_percent > 90
+                condition2 = p.cpu > cpu_limit and total_cpu_percent > 90
+
+                if condition1 or condition2:
                     p.kill()
                     info = p.to_dict()
                     info["dt"] = datetime.datetime.now()
+                    info["hostname"] = platform.node()
+                    info["system"] = platform.system()
+                    info["machine"] = platform.machine()
                     mail_msg = mail_template % info
                     send_email(mail_msg)
                     log.info("kill: %s" % repr(p))
-                    p_list.remove(p)
-                    sys.exit(0)
-                    continue
-
-                if p.cpu > cpu_limit and total_cpu_percent > 90:
-                    p.kill()
-                    info = p.to_dict()
-                    info["dt"] = datetime.datetime.now()
-                    mail_msg = mail_template % info
-                    send_email(mail_msg)
-                    log.info("kill: %s" % p)
                     p_list.remove(p)
                     continue
             except Exception as err:
                 log.error(err)
                 p_list.remove(p)
 
-        time.sleep(interval)
+        sleep(interval)
 
 def main(conf="/etc/watchpmc.conf"):
     conf_file = os.path.abspath(conf)

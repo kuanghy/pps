@@ -18,6 +18,9 @@ class CMDOutException(Exception):
 
 
 class Process(object):
+    """
+    Get a process information by 'ps -aux | grep pid'
+    """
     def __init__(self, pid):
         self.pid   = int(pid)
         self.user  = None

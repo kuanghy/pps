@@ -14,6 +14,7 @@ import os
 import sys
 import pwd
 import grp
+import fcntl
 import atexit
 import resource
 from signal import SIGTERM
@@ -42,7 +43,7 @@ class Daemon(object):
         self.target  = target
         self.args    = args
         self.kwargs  = kwargs
-        self.reout   = os.path.abspath(reout)
+        self.logfile   = os.path.abspath(logfile)
         self.user    = user
         self.group   = group
         self.chdir   = chdir
@@ -118,14 +119,15 @@ class Daemon(object):
         sys.stdout.flush()
         sys.stderr.flush()
         si = open(os.devnull, 'r')
-        so = open(self.reout, 'a')
+        so = open(self.logfile, 'a')
         os.dup2(si.fileno(), sys.stdin.fileno())
         os.dup2(so.fileno(), sys.stdout.fileno())
         os.dup2(so.fileno(), sys.stderr.fileno())
         sys.stdout = sys.stderr  # because stdout is buffered
 
-        if logfile != "/dev/null":
-            fcntl.flock(fobj, fcntl.LOCK_EX)
+        # lock logfile
+        if self.logfile != "/dev/null":
+            fcntl.flock(so, fcntl.LOCK_EX)
 
         # write pidfile
         atexit.register(self.delpid)
@@ -215,10 +217,10 @@ class Daemon(object):
             sys.stderr.write(message % self.pidfile)
             sys.exit(1)
 
-        cmd = "ps -aux grep -E '^.+ %d .+ [0-9]{1,2}\.[0-9]{1} .+$'" % pid
-        out = os.popen(cmd).readlines()
-        if out:
-            sys.stdout.write("".join(line))
+        cmd = "ps -aux | grep -E '^.+ %d .+ [0-9]{1,2}\.[0-9]{1} .+$'" % pid
+        outs = os.popen(cmd).readlines()
+        if outs:
+            sys.stdout.write("".join(outs))
         else:
             message = "Failed to show status: No such process(%d)\n"
             sys.stderr.write(message % pid)
@@ -255,7 +257,7 @@ if __name__ == "__main__":
     options = parser.parse_args()
 
     daemon = Daemon("/tmp/demodaemon.pid", target=demodaemon, args=(1, 2, 3, 4, 5),
-                    kwargs={'a': 1, 'b': 2, 'c':3}, reout="/tmp/demodaemon.log",
+                    kwargs={'a': 1, 'b': 2, 'c':3}, logfile="/tmp/demodaemon.log",
                     user="kong", group="kong")
 
     if options.daemon:
