@@ -16,12 +16,16 @@ import platform
 import datetime
 from time import sleep
 from argparse import ArgumentParser
-from configparser import ConfigParser
-import logging
+try:
+    from configparser import ConfigParser
+except ImportError:
+    from ConfigParser import ConfigParser
 
-log = logging
+import logging
 logging.basicConfig(level=logging.INFO,
         format='%(asctime)s %(levelname)s %(filename)s:%(lineno)d %(message)s')
+
+log = logging
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from pps import Process, mem_percent, cpu_percent
