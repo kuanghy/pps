@@ -107,13 +107,13 @@ def main(conf="/etc/watchpmc.conf"):
         log.error("Invalid format of configuration file.")
         sys.exit(0)
 
-    pid_list = [pid for _, pid in config["PID_LIST"].items()]
+    pid_list = [pid for _, pid in config.items("PID_LIST")]
     if len(pid_list) == 0:
         log.error("No process is configured.")
         sys.exit(0)
 
     if config.has_section("PARAMETERS"):
-        paras = config["PARAMETERS"]
+        paras = dict(config.items("PARAMETERS"))
         interval = paras.get("interval", 1)
         mem_limit = paras.get("mem_limit", 50)
         cpu_limit = paras.get("cpu_limit", 50)
@@ -145,8 +145,8 @@ if __name__ == "__main__":
         pidfile = "/tmp/watchpmc.pid"
         logfile = "/tmp/watchpmc.log"
         if config.has_section("DAEMON_MODE"):
-            pidfile = config["DAEMON_MODE"].get("pidfile", "/tmp/watchpmc.pid")
-            logfile = config["DAEMON_MODE"].get("logfile", "/tmp/watchpmc.log")
+            pidfile = config.get("DAEMON_MODE", "pidfile", "/tmp/watchpmc.pid")
+            logfile = config.get("DAEMON_MODE", "logfile", "/tmp/watchpmc.log")
 
         daemon = Daemon(pidfile, target=main, args=(conf_file,), logfile=logfile)
 
